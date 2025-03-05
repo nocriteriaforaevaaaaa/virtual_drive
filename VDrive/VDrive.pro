@@ -1,14 +1,11 @@
-QT       += core gui
+QT       += core gui widgets
+CONFIG   += c++17
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+# 1) Explicitly add the framework search path with -F
+LIBS += -F/opt/homebrew/Cellar/qca/2.3.9_3/lib -framework qca-qt6
 
-CONFIG += c++17
-QMAKE_APPLE_DEVICE_ARCHS = arm64
-
-
-# You can make your code fail to compile if it uses deprecated APIs.
-# In order to do so, uncomment the following line.
-#DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
+# 2) (Optional) If you still get "QtCrypto file not found," add the Headers path:
+INCLUDEPATH += /opt/homebrew/Cellar/qca/2.3.9_3/lib/qca-qt6.framework/Headers
 
 SOURCES += \
     drive.cpp \
@@ -17,13 +14,7 @@ SOURCES += \
 
 HEADERS += \
     VirtualDrive.h \
-    VirtualDrive.h \
     mainwindow.h
 
 FORMS += \
     mainwindow.ui
-
-# Default rules for deployment.
-qnx: target.path = /tmp/$${TARGET}/bin
-else: unix:!android: target.path = /opt/$${TARGET}/bin
-!isEmpty(target.path): INSTALLS += target
