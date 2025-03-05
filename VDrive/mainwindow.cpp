@@ -68,14 +68,19 @@ void MainWindow::onAddFileClicked() {
     QFile file(filePath);
     if (file.open(QIODevice::ReadOnly)) {
         QByteArray data = file.readAll();
-        QString fileName = QFileInfo(filePath).fileName(); // Extract only the file name
+        QString originalFileName = QFileInfo(filePath).fileName(); // Original file name
 
-        drive->addFile(fileName, data);  // Add file to virtual drive
-        qDebug() << "File added: " << fileName;
+        // Use the addFile method which handles name conflicts
+        drive->addFile(originalFileName, data);
 
         updateFileList();  // Force immediate UI refresh after adding
 
-        QMessageBox::information(this, "Upload Successful", "File '" + fileName + "' has been uploaded successfully.");
+        // Get the final filename from the most recently added file
+        QVector<FileNode> files = drive->listFiles();
+        if (!files.isEmpty()) {
+            QString finalFileName = files.last().name;
+            QMessageBox::information(this, "Upload Successful", "File '" + finalFileName + "' has been uploaded successfully.");
+        }
     } else {
         QMessageBox::warning(this, "Upload Failed", "Could not open the selected file.");
     }

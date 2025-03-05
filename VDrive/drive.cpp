@@ -2,6 +2,7 @@
 #include <QFile>
 #include <QDataStream>
 #include <QDebug>
+#include <QInputDialog>
 
 VirtualDrive::VirtualDrive(const QString& filename, int size, QObject* parent)
     : QObject(parent), driveSize(size), nextFreeOffset(0) {
@@ -24,17 +25,44 @@ VirtualDrive::~VirtualDrive() {
     saveMetadata();
 }
 
+
 void VirtualDrive::addFile(const QString& filename, const QByteArray& data) {
+    QString newFilename = filename;
+
+    // Check if file already exists
+    bool nameExists = std::any_of(fileDirectory.begin(), fileDirectory.end(),
+                                  [&](const FileNode& file) { return file.name == filename; });
+
+    if (nameExists) {
+        bool ok;
+        newFilename = QInputDialog::getText(nullptr, "Rename File",
+                                            "File with this name already exists. Enter a new name:",
+                                            QLineEdit::Normal, filename, &ok);
+        if (!ok || newFilename.isEmpty()) {
+            qDebug() << "File addition cancelled.";
+            return;
+        }
+
+        // Ensure the new name is also unique
+        while (std::any_of(fileDirectory.begin(), fileDirectory.end(),
+                           [&](const FileNode& file) { return file.name == newFilename; })) {
+            newFilename = QInputDialog::getText(nullptr, "Rename File",
+                                                "That name is also taken. Enter another name:",
+                                                QLineEdit::Normal, newFilename, &ok);
+            if (!ok || newFilename.isEmpty()) {
+                qDebug() << "File addition cancelled.";
+                return;
+            }
+        }
+    }
+
     if (nextFreeOffset + data.size() > driveSize) {
         qDebug() << "Error: Not enough space!";
         return;
     }
 
-    FileNode newFile = {filename, static_cast<int>(data.size()), nextFreeOffset};
+    FileNode newFile = {newFilename, static_cast<int>(data.size()), nextFreeOffset};
     fileDirectory.append(newFile);
-
-    qDebug() << "File added successfully: " << filename;
-    qDebug() << "Total files in memory after adding: " << fileDirectory.size();
 
     if (driveFile.open(QIODevice::ReadWrite)) {
         driveFile.seek(nextFreeOffset);
@@ -43,10 +71,11 @@ void VirtualDrive::addFile(const QString& filename, const QByteArray& data) {
     }
 
     nextFreeOffset += data.size();
-    saveMetadata();  // Save updated metadata
+    saveMetadata();
     emit fileListUpdated();
-}
 
+    qDebug() << "File added successfully: " << newFilename;
+}
 void VirtualDrive::deleteFile(const QString& filename) {
     auto it = std::find_if(fileDirectory.begin(), fileDirectory.end(), [&](const FileNode& file) {
         return file.name == filename;
