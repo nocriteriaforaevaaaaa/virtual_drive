@@ -73,10 +73,15 @@ void VirtualDrive::addFile(const QString& filename, const QByteArray& data) {
     nextFreeOffset += data.size();
     saveMetadata();
     emit fileListUpdated();
+<<<<<<< Updated upstream
 
     qDebug() << "File added successfully: " << newFilename;
 }
+=======
+>>>>>>> Stashed changes
 
+    qDebug() << "File added successfully: " << newFilename;
+}
 void VirtualDrive::deleteFile(const QString& filename) {
     auto it = std::find_if(fileDirectory.begin(), fileDirectory.end(), [&](const FileNode& file) {
         return file.name == filename;
