@@ -34,15 +34,13 @@ VirtualDrive::~VirtualDrive() {
     saveMetadata();
 }
 
-// Add a file with encrypted data and its hash
+// Add a file with encrypted data and its hash.
 void VirtualDrive::addFile(const QString &filename, const QByteArray &data, const QByteArray &hash) {
     QString newFilename = filename;
 
-    // Check if file with this name already exists
+    // Check if a file with this name already exists
     bool nameExists = std::any_of(fileDirectory.begin(), fileDirectory.end(),
-                                  [&](const FileNode &file){ return file.name == newFilename; });
-
-    // If a file with the same name exists, prompt for a new name
+                                  [&](const FileNode &file) { return file.name == newFilename; });
     if (nameExists) {
         bool ok;
         newFilename = QInputDialog::getText(nullptr, "Rename File",
@@ -52,10 +50,9 @@ void VirtualDrive::addFile(const QString &filename, const QByteArray &data, cons
             qDebug() << "File addition cancelled.";
             return;
         }
-
-        // Check again if the new name is also taken
+        // Ensure the new name is also unique
         while (std::any_of(fileDirectory.begin(), fileDirectory.end(),
-                           [&](const FileNode &file){ return file.name == newFilename; })) {
+                           [&](const FileNode &file) { return file.name == newFilename; })) {
             newFilename = QInputDialog::getText(nullptr, "Rename File",
                                                 "That name is also taken. Enter another name:",
                                                 QLineEdit::Normal, newFilename, &ok);
@@ -72,7 +69,7 @@ void VirtualDrive::addFile(const QString &filename, const QByteArray &data, cons
         return;
     }
 
-    // Create a FileNode entry
+    // Create a FileNode entry with hash information
     FileNode newFile;
     newFile.name = newFilename;
     newFile.size = data.size();
@@ -90,10 +87,7 @@ void VirtualDrive::addFile(const QString &filename, const QByteArray &data, cons
         return;
     }
 
-    // Update the offset
     nextFreeOffset += data.size();
-
-    // Save metadata and notify listeners
     saveMetadata();
     emit fileListUpdated();
 
@@ -102,7 +96,7 @@ void VirtualDrive::addFile(const QString &filename, const QByteArray &data, cons
 
 void VirtualDrive::deleteFile(const QString &filename) {
     auto it = std::find_if(fileDirectory.begin(), fileDirectory.end(),
-                           [&](const FileNode &file){ return file.name == filename; });
+                           [&](const FileNode &file) { return file.name == filename; });
     if (it != fileDirectory.end()) {
         fileDirectory.erase(it);
         saveMetadata();
@@ -116,7 +110,7 @@ void VirtualDrive::deleteFile(const QString &filename) {
 QByteArray VirtualDrive::readFile(const QString &filename) {
     // Find the file in the directory
     auto it = std::find_if(fileDirectory.begin(), fileDirectory.end(),
-                           [&](const FileNode &file){ return file.name == filename; });
+                           [&](const FileNode &file) { return file.name == filename; });
     if (it == fileDirectory.end()) {
         qDebug() << "File not found in virtual drive:" << filename;
         return QByteArray();
@@ -128,21 +122,33 @@ QByteArray VirtualDrive::readFile(const QString &filename) {
         return QByteArray();
     }
 
-    qDebug() << "Reading file:" << it->name
-             << "Offset:" << it->offset
-             << "Size:" << it->size;
-
-    // Seek and read the encrypted data
+    qDebug() << "Reading file:" << it->name << "Offset:" << it->offset << "Size:" << it->size;
     driveFile.seek(it->offset);
     QByteArray data = driveFile.read(it->size);
     driveFile.close();
 
     qDebug() << "Read data length:" << data.size();
-    return data; // This data is still encrypted; decryption happens in MainWindow
+    return data;
 }
 
 QVector<FileNode> VirtualDrive::listFiles() const {
     return fileDirectory;
+}
+
+// New search method from the first snippet
+QVector<FileNode> VirtualDrive::searchFiles(const QString &query, bool caseSensitive) const {
+    QVector<FileNode> results;
+    Qt::CaseSensitivity sensitivity = caseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
+
+    // Filter files based on the search query
+    for (const auto &file : fileDirectory) {
+        if (file.name.contains(query, sensitivity)) {
+            results.append(file);
+        }
+    }
+
+    qDebug() << "Search for '" << query << "' found " << results.size() << " files";
+    return results;
 }
 
 void VirtualDrive::saveMetadata() {
@@ -154,12 +160,10 @@ void VirtualDrive::saveMetadata() {
 
     QDataStream out(&metaFile);
     out << fileDirectory.size();
-
     for (const auto &file : fileDirectory) {
         out << file.name << file.size << file.offset << file.hash;
         qDebug() << "Saving file to metadata:" << file.name;
     }
-
     metaFile.close();
     qDebug() << "Metadata saved successfully.";
 }
@@ -183,12 +187,9 @@ void VirtualDrive::loadMetadata() {
         FileNode file;
         in >> file.name >> file.size >> file.offset >> file.hash;
         fileDirectory.append(file);
-
-        // Ensure nextFreeOffset is at least beyond this file
         nextFreeOffset = qMax(nextFreeOffset, file.offset + file.size);
         qDebug() << "Loaded file from metadata:" << file.name;
     }
-
     metaFile.close();
     qDebug() << "Metadata loaded successfully. Total files:" << fileDirectory.size();
 }

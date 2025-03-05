@@ -32,6 +32,12 @@ public:
 
     // Returns the list of files in the drive
     QVector<FileNode> listFiles() const;
+    void addFile(const QString& filename, const QByteArray& data);
+
+
+
+    // New search method
+    QVector<FileNode> searchFiles(const QString& query, bool caseSensitive = false) const;
 
 signals:
     void fileListUpdated();
