@@ -17,7 +17,6 @@ SOURCES += \
 
 HEADERS += \
     VirtualDrive.h \
-    VirtualDrive.h \
     mainwindow.h
 
 FORMS += \
