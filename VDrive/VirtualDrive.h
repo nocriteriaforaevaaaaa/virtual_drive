@@ -4,25 +4,33 @@
 #include <QObject>
 #include <QFile>
 #include <QVector>
-#include <QByteArray>  // Added for handling QByteArray
+#include <QByteArray>
 
+// File metadata structure
 struct FileNode {
     QString name;
     int size;
     int offset;
-    QByteArray hash; // Added: stores the file's hash for integrity verification
+    QByteArray hash;  // For storing file hash if needed
 };
 
 class VirtualDrive : public QObject {
     Q_OBJECT
 
 public:
-    explicit VirtualDrive(const QString& filename, int size, QObject* parent = nullptr);
+    explicit VirtualDrive(const QString &filename, int size, QObject *parent = nullptr);
     ~VirtualDrive();
 
-    // Updated addFile to accept a hash parameter along with file data.
-    void addFile(const QString& filename, const QByteArray& data, const QByteArray& hash);
-    void deleteFile(const QString& filename);
+    // Adds a file with encrypted data and its hash
+    void addFile(const QString &filename, const QByteArray &data, const QByteArray &hash);
+
+    // Deletes a file from the virtual drive
+    void deleteFile(const QString &filename);
+
+    // Reads (encrypted) data from the virtual drive
+    QByteArray readFile(const QString &filename);
+
+    // Returns the list of files in the drive
     QVector<FileNode> listFiles() const;
 
 signals:
@@ -33,8 +41,7 @@ private:
     int driveSize;
     int nextFreeOffset;
     QVector<FileNode> fileDirectory;
-
-    QFile driveFile;
+    QFile driveFile; // The container file for storing data
 
     void saveMetadata();
     void loadMetadata();
