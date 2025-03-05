@@ -5,8 +5,15 @@
 #include <QStandardItemModel>
 #include "VirtualDrive.h"
 
+// Forward declarations for classes we use as pointers
+class QToolBar;
+class QComboBox;
+class QLineEdit;
+
 QT_BEGIN_NAMESPACE
-namespace Ui { class MainWindow; }
+namespace Ui {
+class MainWindow;
+}
 QT_END_NAMESPACE
 
 class MainWindow : public QMainWindow
@@ -23,6 +30,9 @@ private slots:
     void onOpenFileClicked();
     void updateFileList();
     void fadeInListView();
+    void onSortOrderChanged(int index);
+    void onSearchTextChanged(const QString &searchText);
+    void clearSearch();
 
 private:
     bool authenticateUser();
@@ -30,6 +40,11 @@ private:
     Ui::MainWindow *ui;
     VirtualDrive *drive;
     QStandardItemModel *fileModel;
+
+    // Added UI elements for the toolbar, sorting, and searching
+    QToolBar *toolBar;
+    QComboBox *sortComboBox;
+    QLineEdit *searchLineEdit;
 };
 
-#endif
+#endif // MAINWINDOW_H
