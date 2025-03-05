@@ -3,10 +3,11 @@
 #include <QDataStream>
 #include <QDebug>
 #include <QInputDialog>
+#include <algorithm>
 
 VirtualDrive::VirtualDrive(const QString& filename, int size, QObject* parent)
-    : QObject(parent), driveSize(size), nextFreeOffset(0) {
-
+    : QObject(parent), driveSize(size), nextFreeOffset(0)
+{
     driveFile.setFileName(filename);
     if (!driveFile.open(QIODevice::ReadWrite)) {
         qDebug() << "Error: Could not create or open virtual drive file!";
@@ -25,8 +26,7 @@ VirtualDrive::~VirtualDrive() {
     saveMetadata();
 }
 
-
-void VirtualDrive::addFile(const QString& filename, const QByteArray& data) {
+void VirtualDrive::addFile(const QString& filename, const QByteArray& data, const QByteArray& hash) {
     QString newFilename = filename;
 
     // Check if file already exists
@@ -61,7 +61,12 @@ void VirtualDrive::addFile(const QString& filename, const QByteArray& data) {
         return;
     }
 
-    FileNode newFile = {newFilename, static_cast<int>(data.size()), nextFreeOffset};
+    // Create new file node with the hash
+    FileNode newFile;
+    newFile.name = newFilename;
+    newFile.size = static_cast<int>(data.size());
+    newFile.offset = nextFreeOffset;
+    newFile.hash = hash;
     fileDirectory.append(newFile);
 
     if (driveFile.open(QIODevice::ReadWrite)) {
@@ -74,8 +79,9 @@ void VirtualDrive::addFile(const QString& filename, const QByteArray& data) {
     saveMetadata();
     emit fileListUpdated();
 
-    qDebug() << "File added successfully: " << newFilename;
+    qDebug() << "File added successfully:" << newFilename;
 }
+
 void VirtualDrive::deleteFile(const QString& filename) {
     auto it = std::find_if(fileDirectory.begin(), fileDirectory.end(), [&](const FileNode& file) {
         return file.name == filename;
@@ -85,7 +91,7 @@ void VirtualDrive::deleteFile(const QString& filename) {
         fileDirectory.erase(it);
         saveMetadata();
         emit fileListUpdated();
-        qDebug() << "File deleted successfully: " << filename;
+        qDebug() << "File deleted successfully:" << filename;
     } else {
         qDebug() << "Error: File not found!";
     }
@@ -93,11 +99,9 @@ void VirtualDrive::deleteFile(const QString& filename) {
 
 QVector<FileNode> VirtualDrive::listFiles() const {
     qDebug() << "Fetching files from virtual drive. Total files stored:" << fileDirectory.size();
-
     for (const auto& file : fileDirectory) {
         qDebug() << "Stored file:" << file.name;
     }
-
     return fileDirectory;
 }
 
@@ -112,7 +116,7 @@ void VirtualDrive::saveMetadata() {
     out << fileDirectory.size();
 
     for (const auto& file : fileDirectory) {
-        out << file.name << file.size << file.offset;
+        out << file.name << file.size << file.offset << file.hash;
         qDebug() << "Saving file to metadata:" << file.name;
     }
 
@@ -137,13 +141,13 @@ void VirtualDrive::loadMetadata() {
 
     for (int i = 0; i < count; ++i) {
         FileNode file;
-        in >> file.name >> file.size >> file.offset;
+        in >> file.name >> file.size >> file.offset >> file.hash;
         fileDirectory.append(file);
 
         nextFreeOffset = qMax(nextFreeOffset, file.offset + file.size);
-        qDebug() << "Loaded file from metadata: " << file.name;
+        qDebug() << "Loaded file from metadata:" << file.name;
     }
 
     metaFile.close();
-    qDebug() << "Metadata loaded successfully. Total files: " << fileDirectory.size();
+    qDebug() << "Metadata loaded successfully. Total files:" << fileDirectory.size();
 }

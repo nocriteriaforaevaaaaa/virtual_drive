@@ -16,20 +16,18 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-
 private slots:
     void onAddFileClicked();
     void onDeleteFileClicked();
     void updateFileList();
-
     void fadeInListView();
 
 private:
+    bool authenticateUser(); // New: Authentication method
+
     Ui::MainWindow *ui;
     VirtualDrive *drive;
-    QStandardItemModel *fileModel;    // Added for QListView model
-
-
+    QStandardItemModel *fileModel; // Added for QListView model
 };
 
 #endif // MAINWINDOW_H
